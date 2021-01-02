@@ -1,54 +1,70 @@
+variable "tg_enabled" {
+    type    = bool
+    default = false
+}
+
 variable "aws_tg_name" {
-    type = string
+    type    = string
 }
 
 variable "aws_tg_port" {
-    type = number
+    type    = number
 }
 
 variable "aws_vpc_id" {
-    type = string
+    type    = string
 }
 
 variable "interval" {
-    type = number
+    type    = number
     default = 60
 }
 
 variable "path" {
-    type = string
-    default = "/ping"
+    type    = string
 }
 
 variable "timeout" {
-    type = number
+    type    = number
     default = 10
 }
 
 variable "healthy_threshold" {
-    type = number
+    type    = number
     default = 2
 }
 
 variable "port" {
-    type = number
-    default = 80
+    type    = number
 }
 
 variable "protocol" {
-    type = string
+    type    = string
     default = "HTTP"
 }
 
 variable "matcher" {
-    type = string
+    type    = string
     default = "200~399"
+}
+variable "stickiness" {
+    type    = object({
+        cookie_duration = number
+        enabled         = bool
+    })
+    default = null
+}
+
+variable "lb_listener_rule_enabled" {
+    type    = bool
+    default = false
 }
 
 variable "aws_alb_arn" {
-    type = string
+    type    = string
 }
 
-variable "aws_lb_domain_url" {
-    type = list(string)
+variable "lb_listener_rule_condition" {
+    type    = list(map(list(string)))
+    default = []
 }

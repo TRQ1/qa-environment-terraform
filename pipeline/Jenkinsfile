@@ -1,0 +1,108 @@
+node('Infra') {
+    timestamps {
+        def app
+        def LOCAL_PATH = pwd()
+        try {
+            slackSend channel: "${CHANNEL}", message:""
+            stage('[Source Checkout]') {
+                if (params.CHANNEL != '') {
+                    wrap([$class: 'BuildUser']) {
+                        def userId = env.BUILD_USER_ID
+                        slackSend channel: "${CHANNEL}", message: "[${JOB_NAME}] Started [JobNumber:${env.BUILD_NUMBER}]"
+                    }
+                }
+                checkout([$class: 'GitSCM', branches: [[name: "origin/master"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CleanCheckout']], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-sshkey', url: '${GIT_SOURCE_URL}']]])
+            }            
+            stage('[Download Envfiles]') {
+                try{
+                    if (params.CHANNEL != '')
+                        slackSend channel: "${CHANNEL}", message: "[${JOB_NAME}] Compleated: [${APP_NAME}] envrionment"
+                    sh """
+                        git clone ${GITHUB_ENV_URL}
+                        cp -a ${LOCAL_PATH}/infra-pipeline-env/${APP_NAME}/${ENV}/envfile ${LOCAL_PATH}/scripts/
+                    """
+                } catch (err) {
+                    echo 'Err: Download failed: ' + err.toString()
+                    slackSend channel: "${CHANNEL}", message: "[${JOB_NAME}] Faild downloading ${APP_NAME}'s envfile."
+                    slackSend channel: "${CHANNEL}", message: err.toString()
+                }
+            }
+            stage('[Push Envs to Consul]') {
+                try{
+                    sh """
+                        cd ${LOCAL_PATH}/scripts/ && pip3 install --user -r requirement.txt
+                        cd ${LOCAL_PATH}/scripts/ && python3 app.py ${ENV} ${APP_NAME} ${VERSION}
+                        cp -a ${LOCAL_PATH}/scripts/terraform.tfvars ${LOCAL_PATH}/env/${INFRA_ENV}/ 
+                    """
+                } catch (err) {
+                    echo 'Err: Cause Consul with Error: ' + err.toString()
+                    slackSend channel: "${CHANNEL}", message: "[${JOB_NAME}] Faild that push envs to Consul ${APP_NAME}."
+                    slackSend channel: "${CHANNEL}", message: err.toString()
+                }
+            }
+
+            stage('[Init for Infra Environments]') {
+                try {
+                    if (params.CHANNEL != '') {
+                        slackSend channel: "${CHANNEL}", message: "[${JOB_NAME}] Compleated: init for [${APP_NAME}] envrionment"
+                    }
+                    sh """
+                        export AWS_PROFILE=${AWS_ENV} && cd ${LOCAL_PATH}/env/${INFRA_ENV}/ && terraform init -var aws_profile=${AWS_ENV}
+                    """
+                } catch (err) {
+                    echo 'Err: test with Error: ' + err.toString()
+                    slackSend channel: "${CHANNEL}", message: "[${JOB_NAME}] Faild nit for ${APP_NAME}."
+                    slackSend channel: "${CHANNEL}", message: err.toString()
+                }
+            }
+
+            stage('[Test for Infra Environments]') {
+                try {
+                    if (params.CHANNEL != '') {
+                        slackSend channel: "${CHANNEL}", message: "[${JOB_NAME}] Compleated: provison for [${APP_NAME}] envrionment"
+                    }
+                    def T_WORKSPACE = "cd ${LOCAL_PATH}/env/${INFRA_ENV}/ && terraform workspace list | grep ${APP_NAME} | awk '{ print \$1 }'"
+                    sh """
+                        export AWS_PROFILE=${AWS_ENV} && /bin/bash -x pipeline/create_space.sh
+                       """
+
+                } catch (err) {
+                    echo 'Err: test with Error: ' + err.toString()
+                    slackSend channel: "${CHANNEL}", message: "[${JOB_NAME}] Faild test for ${APP_NAME}."
+                    slackSend channel: "${CHANNEL}", message: err.toString()
+                }
+            }
+
+            stage('Approval') {
+                script {
+                    def userInput = input(id: 'confirm', message: 'Apply Terraform?', parameters: [ [$class: 'BooleanParameterDefinition', defaultValue: false, description: 'Apply terraform', name: 'confirm'] ])
+                }
+            }
+
+            stage('[Provision for Infra Environments]') {
+                try {
+                    if (params.CHANNEL != '') {
+                        slackSend channel: "${CHANNEL}", message: "[${JOB_NAME}] Compleated: provison for [${APP_NAME}] envrionment"
+                    }
+                    sh """
+                        cd ${LOCAL_PATH}/env/${INFRA_ENV}/ && terraform apply terraform_plan
+                        cd ${LOCAL_PATH}/env/${INFRA_ENV}/ && terraform workspace select default
+                    """
+                } catch (err) {
+                    echo 'Err: provision with Error: ' + err.toString()
+                    slackSend channel: "${CHANNEL}", message: "[${JOB_NAME}] Faild provision for ${APP_NAME}."
+                    slackSend channel: "${CHANNEL}", message: err.toString()
+                }
+            }
+
+        } catch (err) {
+            if (params.CHANNEL != '') {
+                echo 'Err: Pipeline failed with Error: ' + err.toString()
+                slackSend channel: "${CHANNEL}", message: "[${JOB_NAME}] Job Failed. ${env.BUILD_URL}]"
+                slackSend channel: "${CHANNEL}", message: err.toString()
+            }
+        } finally {
+            //cleanWs()
+        }
+    }
+}

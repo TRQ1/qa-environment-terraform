@@ -1,47 +1,53 @@
 variable "aws_region" {
-    type = string
-    default = "ap-northeast-2"
+    type        = string
+    default     = "ap-northeast-2"
 
 }
 
 variable "aws_lt_name" {
-    type = string
+    type        = string
 }
 
 variable "aws_lt_iam_profile_id" {
-    type = string
+    type        = string
 }
 
 variable "aws_lt_instance_type" {
-    type = string
+    type        = string
 }
 
 variable "aws_lt_key_name" {
-    type = string
+    type        = string
 }
 
+variable "aws_target_group_arns" {
+    type        = list(string)
+    default     = []
+}
+
+
 variable "aws_lt_iam_instance_profile" {
-    type = string
+    type        = string
 }
 
 variable "aws_lt_user_data" {
-    type = string
-    default = ""
+    type        = string
+    default     = ""
 }
 
 variable "aws_lt_placement" {
-    type = object({
+    type        = object({
         affinity          = string
         availability_zone = string
         group_name        = string
         host_id           = string
         tenancy           = string
     })
-    default = null
+    default     = null
 }
 
 variable "aws_security_group_id" {
-    type = list(string)
+    type        = list(string)
 }
 
 variable "tags" {
@@ -51,27 +57,27 @@ variable "tags" {
 }
 
 variable "aws_asg_name" {
-    type = string
+    type      = string
 }
 
 variable "aws_asg_max_size" {
-    type = number
+    type      = number
 }
 
 variable "aws_asg_min_size" {
-    type = number
+    type      = number
 }
 
 variable "aws_asg_health_check_type" {
-    type = string
+    type      = string
 }
 
 variable "this_aws_lt_name" {
-    type = string
+    type      = string
 }
 
 variable "aws_vpc_zone" {
-    type = list(string)
+    type      = list(string)
 }
 
 variable "aws_asg_sch" {

@@ -31,8 +31,8 @@ variable "green_provisioning_asg" {
     default = false
 }
 
-variable "aws_cd_ec2_instance_tag" {
-    type = string
+variable "asg_name" {
+    type = list(string)
 }
 
 variable "cd_rollback_enabled" {

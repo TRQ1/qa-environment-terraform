@@ -65,6 +65,7 @@ resource "aws_autoscaling_group" "aws_asg" {
   health_check_grace_period = 60
   health_check_type         = var.aws_asg_health_check_type
   desired_capacity          = var.aws_asg_max_size
+  target_group_arns         = var.aws_target_group_arns
   force_delete              = true
   vpc_zone_identifier       = var.aws_vpc_zone
 

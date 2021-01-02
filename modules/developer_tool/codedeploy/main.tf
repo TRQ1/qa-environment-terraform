@@ -7,6 +7,7 @@ resource "aws_codedeploy_deployment_group" "cd_group" {
   app_name               = aws_codedeploy_app.cd_app.name
   deployment_group_name  = aws_codedeploy_app.cd_app.name
   service_role_arn       = var.aws_cd_iam_arn
+  autoscaling_groups = var.asg_name
   
   deployment_style {
     deployment_option = var.alb_target_group == null ? "WITHOUT_TRAFFIC_CONTROL" : "WITH_TRAFFIC_CONTROL"
@@ -31,6 +32,11 @@ resource "aws_codedeploy_deployment_group" "cd_group" {
     }
   }
 
+  auto_rollback_configuration {
+    enabled = var.cd_rollback_enabled
+    events  = var.cd_rollback_enabled == true ? ["DEPLOYMENT_FAILURE"] : []
+  }
+
   dynamic "load_balancer_info" {
     for_each = var.alb_target_group == null ? [] : [var.alb_target_group]
     content {
@@ -39,16 +45,4 @@ resource "aws_codedeploy_deployment_group" "cd_group" {
       }
     }
   }
-
-  ec2_tag_filter {
-    key   = "appName"
-    type  = "KEY_AND_VALUE"
-    value =  var.aws_cd_ec2_instance_tag
-  }
-
-  auto_rollback_configuration {
-    enabled = var.cd_rollback_enabled
-    events  = var.cd_rollback_enabled == true ? ["DEPLOYMENT_FAILURE"] : []
-  }
-
 }
